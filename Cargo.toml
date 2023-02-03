@@ -1,0 +1,25 @@
+[package]
+name = "new3dengine"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[profile.release]
+lto="thin"
+
+[dependencies.sdl2]
+version = "0.34.3"
+default-features = false
+features = ["image", "gfx"]
+
+
+[dependencies.gl33]
+git = "https://github.com/Lokathor/gl33"
+
+[dependencies.glm]
+git = "https://github.com/dche/glm-rs"
+
+[dependencies.bytemuck]
+git = "https://github.com/Lokathor/bytemuck"
