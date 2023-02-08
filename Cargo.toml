@@ -18,8 +18,8 @@ features = ["image", "gfx"]
 [dependencies.gl33]
 git = "https://github.com/Lokathor/gl33"
 
-[dependencies.glm]
-git = "https://github.com/dche/glm-rs"
+[dependencies.nalgebra]
+git = "https://github.com/dimforge/nalgebra"
 
 [dependencies.bytemuck]
 git = "https://github.com/Lokathor/bytemuck"

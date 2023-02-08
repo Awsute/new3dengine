@@ -1,9 +1,10 @@
 extern crate gl33;
 extern  crate bytemuck;
+use std::{ops::Deref, str::from_utf8};
+
 use sdl2::image::*;
 use gl33::{*, gl_core_types::*, gl_enumerations::*, gl_groups::*, global_loader::*};
-use glm::*;
-
+use glm::{*};
 
 pub fn buffer_data(gl:&GlFns, ty: GLenum, data: &[u8], usage: GLenum) {
     unsafe {
@@ -78,7 +79,7 @@ pub fn draw_object(gl:&GlFns, vertices: Vec<f32>, indices : Vec<u32>, vert_shade
         gl.EnableVertexAttribArray(0);
 
 
-        
+
 
         //Vertex Colors
         gl.VertexAttribPointer(
@@ -120,6 +121,9 @@ pub fn draw_object(gl:&GlFns, vertices: Vec<f32>, indices : Vec<u32>, vert_shade
         );
 
         gl.CompileShader(vertex_shader);
+
+
+
 
 
         let mut success = 0;
@@ -164,17 +168,33 @@ pub fn draw_object(gl:&GlFns, vertices: Vec<f32>, indices : Vec<u32>, vert_shade
             v.set_len(log_len.try_into().unwrap());
             panic!("Fragment Compile Error: {}", String::from_utf8_lossy(&v));
         }
-
+        
+        
         let shader_program = gl.CreateProgram();
         gl.AttachShader(shader_program, vertex_shader);
         gl.AttachShader(shader_program, fragment_shader);
+
         gl.LinkProgram(shader_program);
 
 
-        gl.Clear(GL_COLOR_BUFFER_BIT);
         gl.UseProgram(shader_program);
-        //gl.DrawArrays(GL_TRIANGLES, 0, 3);  
+        //gl.DrawArrays(GL_TRIANGLES, 0, 3);
+
+
+        
+
         gl.PolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        
+        let mat = Matrix4::new_perspective(16.0/9.0, 90_f32.to_radians(),0.1, 100.0);
+        println!("{:?}", mat);
+        gl.UniformMatrix4fv(
+            gl.GetUniformLocation(shader_program, format!("{}\0", "transform").as_ptr()), 
+            1, 
+            GL_FALSE.0.try_into().unwrap(), 
+            mat.as_ptr()
+        );
+
+        gl.Clear(GL_COLOR_BUFFER_BIT);
 
         gl.DrawElements(GL_TRIANGLES, (std::mem::size_of_val(&indices)).try_into().unwrap(), GL_UNSIGNED_INT, 0 as *const _);
         gl.BindVertexArray(0);

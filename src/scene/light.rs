@@ -4,13 +4,13 @@ use super::view_object::ViewObject;
 
 pub struct Light{
     view_object : ViewObject,
-    color : Vec4,
+    color : Vector4<f32>,
     strength : f32
 }
 
 
 impl Light{
-    pub fn new(position : Vec3, direction : Vec3, proj_matrix : Mat4, color : Vec4, strength : f32) -> Self{
+    pub fn new(position : Vector3<f32>, direction : Vector3<f32>, proj_matrix : Matrix4<f32>, color : Vector4<f32>, strength : f32) -> Self{
         return Self { 
             view_object: ViewObject::new(position, direction, proj_matrix), 
             color: color, 
