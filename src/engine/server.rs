@@ -1,6 +1,6 @@
 use glm::*;
 use crate::*;
 pub struct ServerEngine{
-    objects : Vec<Object>,
-    lights : Vec<Light>
+    pub objects : Vec<Model<'static>>,
+    pub lights : Vec<Light>
 }

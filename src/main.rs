@@ -29,23 +29,23 @@ const VERT_SHADER: &str = r#"#version 460
 
   
     layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 aColor;
+    layout (location = 1) in vec3 aNormal;
     layout (location = 2) in vec2 aTexCoord;
-    layout (location = 3) uniform mat4 transform;
+    layout (location = 3) uniform mat4 mvp;
 
-    out vec3 ourColor;
+    out vec3 ourNormal;
     out vec2 texCoord;
 
     void main() {
-        gl_Position = transform*vec4(aPos.x,aPos.y,-aPos.z, 1.0);
-        ourColor = aColor;
+        gl_Position = mvp*vec4(aPos.x,aPos.y,-aPos.z, 1.0);
+        ourNormal = aNormal;
         texCoord = aTexCoord;
 
     }
 "#;
 
 const FRAG_SHADER: &str = r#"#version 460
-    in vec3 ourColor;
+    in vec3 ourNormal;
     in vec2 texCoord;
 
 
@@ -53,7 +53,7 @@ const FRAG_SHADER: &str = r#"#version 460
 
     uniform sampler2D ourTexture;
     void main() {
-        FragColor = texture(ourTexture, texCoord) * vec4(ourColor, 1.0);
+        FragColor = texture(ourTexture, texCoord);
     }
 "#;
 
@@ -73,19 +73,23 @@ pub fn main() {
     
     
     let gl = unsafe { GlFns::load_from(&|p| SDL_GL_GetProcAddress(p as *const i8) as _).unwrap() };
-    
-    unsafe {
-        gl.Enable(GL_DEPTH_TEST);
-        gl.DepthFunc(GL_GEQUAL);
-
-
-        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT.0.try_into().unwrap());
-        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT.0.try_into().unwrap());
-        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR.0.try_into().unwrap());
-        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR.0.try_into().unwrap());
-        gl.ClearColor(0.0, 0.0, 0.0, 1.0);
-    }
-
+    let server = ServerEngine{
+        objects : Vec::new(),
+        lights : Vec::new()
+    };
+    let current_camera = Camera{
+        position : Vec3::new(0.0,0.0,0.0),
+        direction : Vec3::new(0.0,0.0,1.0),
+        projection : Mat4::new_perspective(window.size().0 as f32/window.size().1 as f32, 90_f32.to_radians(), 0.1, 100.0),
+        velocity : Vec3::new(0.0,0.0,0.0),
+        rotational_velocity : Vec3::new(0.0,0.0,0.0)
+    };
+    let current_client = Client{
+        camera : current_camera,
+        server : server,
+        gl : gl
+    };
+    current_client.init_gl();
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -100,21 +104,15 @@ pub fn main() {
             }
         }
         unsafe{
-            
             let texture = "assets/textures/travisScot.png";
-            let vertices =
-            vec![
-                //position        //color          //texCoords
-                0.5,  0.5, 1.0,   1.0, 1.0, 1.0,   1.0, 0.0,   // top right
-                0.5, -0.5, 1.0,   1.0, 1.0, 1.0,   1.0, 1.0,   // bottom right
-               -0.5, -0.5, 1.0,   1.0, 1.0, 1.0,   0.0, 1.0,   // bottom left
-               -0.5,  0.5, 1.0,   1.0, 1.0, 1.0,   0.0, 0.0    // top left 
-            ];
-            let index_buffer = vec![    
-                0, 1, 3, 
-                1, 2, 3
-            ];
-            draw_object(&gl, vertices, index_buffer, VERT_SHADER, FRAG_SHADER, texture);
+            let object = Model { 
+                mesh: Mesh::load_obj_file("assets/objects/normalized_cube.obj".to_string()), 
+                material: Material { ambient: Vec4::new(0.0,0.0,0.0,1.0), diffuse: Vec4::new(0.0,0.0,0.0,1.0), specular: Vec4::new(0.0,0.0,0.0,1.0), shininess: 0.0 }, 
+                texture: &sdl2::surface::Surface::from_file(texture).unwrap(), 
+                velocity: Vec3::new(0.0,0.0,0.0), 
+                rotational_velocity: Vec3::new(0.0,0.0,0.0) 
+            };
+            draw_object(&gl, object, VERT_SHADER, FRAG_SHADER, texture);
         }
         // The rest of the game loop goes here...
         
