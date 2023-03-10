@@ -16,10 +16,10 @@ pub struct Mesh{
     pub index_buffer : Vec<u32>,
     
 }
-pub struct Model<'a>{
+pub struct Model{
     pub mesh : Mesh,
     pub material : Material,
-    pub texture : &'a Surface<'a>,
+    pub texture : &'static str,
     pub velocity : Vector3<f32>,
     pub rotational_velocity : Vector3<f32>
 }
@@ -36,7 +36,7 @@ impl Mesh{
         let mut normals: Vec<f32> = Vec::new();
         let mut vertices: Vec<f32> = Vec::new();
         let mut tex_coords: Vec<f32> = Vec::new();
-        let mut index_uses: Vec<(usize,usize,usize)> = Vec::new();
+        let mut index_uses: Vec<(usize,usize)> = Vec::new();
         let obj_key: [&str; 4] = ["v", "f", "vt", "vn"];
 
         for line in reader.lines() {
@@ -54,31 +54,30 @@ impl Mesh{
                     let p2: Vec<&str> = vals[2].split('/').collect();
                     let p3: Vec<&str> = vals[3].split('/').collect();
                     for i in [p1,p2,p3].iter(){
-                        let (point_i, tex_i, norm_i) = (
+                        let (point_i, tex_i) = (
                             i[0].parse::<usize>().unwrap()-1,
                             i[1].parse::<usize>().unwrap()-1,
-                            i[2].parse::<usize>().unwrap()-1
+                            //i[2].parse::<usize>().unwrap()-1
                         );
                         
-                        if index_uses.contains(&(point_i,tex_i,norm_i)) {
+                        if index_uses.contains(&(point_i,tex_i)) {
 
-                            indices.push(index_uses.iter().position(|&x|x==(point_i,tex_i,norm_i)).unwrap() as u32);
+                            indices.push(index_uses.iter().position(|&x|x==(point_i,tex_i)).unwrap() as u32);
                         } else {
-                            indices.push((vertices.len() as u32)/8);
+                            indices.push((vertices.len() as u32)/5);
+
                             vertices.extend(
                                 [
                                     points[point_i*3],
                                     points[point_i*3+1],
                                     points[point_i*3+2],
-                                    normals[norm_i*3],
-                                    normals[norm_i*3+1],
-                                    normals[norm_i*3+2],
                                     tex_coords[tex_i*2],
                                     tex_coords[tex_i*2+1],
 
                                 ]
                             );
-                            index_uses.push((point_i, tex_i, norm_i));
+                            
+                            index_uses.push((point_i, tex_i,));
                         }
                     }
                 } else if *vals[0] == *obj_key[2] {
@@ -100,9 +99,7 @@ impl Mesh{
             }
         }
         Mesh { 
-            vertex_buffer: vertices, 
-            //tex_buffer: tex_coords, 
-            //normal_buffer: normals, 
+            vertex_buffer: vertices,
             index_buffer: indices
         }
     }
@@ -110,6 +107,6 @@ impl Mesh{
 }
 
 
-impl Model<'static>{
+impl Model{
 
 }

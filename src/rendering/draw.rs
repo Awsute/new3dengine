@@ -17,12 +17,12 @@ pub fn buffer_data(gl:&GlFns, ty: GLenum, data: &[u8], usage: GLenum) {
         usage,
       );
     }
-  }
+}
 pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : &str, texture : &str){
     unsafe {
         let indices = object.mesh.index_buffer;
         let vertices = object.mesh.vertex_buffer;
-        let texture_data = object.texture;
+        let texture_data = sdl2::surface::Surface::from_file(object.texture).unwrap();
         let mut vao = 0;
         let mut ebo = 0;
         let mut tex = 0;
@@ -87,27 +87,27 @@ pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : 
         );
         gl.EnableVertexAttribArray(0);
 
-        //normal
+        ////normal
+        //gl.VertexAttribPointer(
+        //    1,
+        //    3,
+        //    GL_FLOAT,
+        //    0,
+        //    stride,
+        //    (3*size_of_f32) as *const _
+        //);
+        //gl.EnableVertexAttribArray(1);
+
+        //tex
         gl.VertexAttribPointer(
             1,
-            3,
+            2,
             GL_FLOAT,
             0,
             stride,
             (3*size_of_f32) as *const _
         );
         gl.EnableVertexAttribArray(1);
-
-        //tex
-        gl.VertexAttribPointer(
-            2,
-            2,
-            GL_FLOAT,
-            0,
-            stride,
-            (6*size_of_f32) as *const _
-        );
-        gl.EnableVertexAttribArray(2);
 
 
 
