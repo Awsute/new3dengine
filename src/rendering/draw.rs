@@ -1,7 +1,7 @@
 extern crate gl33;
 extern  crate bytemuck;
 use std::{ops::Deref, str::from_utf8};
-
+use crate::Camera;
 use sdl2::image::*;
 use gl33::{*, gl_core_types::*, gl_enumerations::*, gl_groups::*, global_loader::*};
 use glm::{*};
@@ -18,10 +18,12 @@ pub fn buffer_data(gl:&GlFns, ty: GLenum, data: &[u8], usage: GLenum) {
       );
     }
 }
-pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : &str, texture : &str){
+const SIZE_OF_F32 : usize = std::mem::size_of::<f32>();
+
+pub fn draw_object(gl:&GlFns, camera : &Camera, object : &Model, vert_shader : &str, frag_shader : &str){
     unsafe {
-        let indices = object.mesh.index_buffer;
-        let vertices = object.mesh.vertex_buffer;
+        let indices = &object.mesh.index_buffer;
+        let vertices = &object.mesh.vertex_buffer;
         let texture_data = sdl2::surface::Surface::from_file(object.texture).unwrap();
         let mut vao = 0;
         let mut ebo = 0;
@@ -32,15 +34,7 @@ pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : 
 
 
 
-        gl.GenBuffers(1, &mut ebo);
-        gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-        buffer_data(
-            gl,
-            GL_ELEMENT_ARRAY_BUFFER,
-            bytemuck::cast_slice(indices.as_slice()), 
-            GL_STATIC_DRAW
-        );
 
 
         
@@ -59,11 +53,7 @@ pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : 
         );
         gl.GenerateMipmap(GL_TEXTURE_2D);
 
-
-        let size_of_f32 = std::mem::size_of::<f32>();
-        let stride = (8*size_of_f32).try_into().unwrap();
         
-        //Position
         let mut vbo = 0;
         
         gl.GenBuffers(1, &mut vbo);
@@ -76,7 +66,19 @@ pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : 
             GL_STATIC_DRAW
         );
 
-        //point
+        gl.GenBuffers(1, &mut ebo);
+        gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+
+        buffer_data(
+            gl,
+            GL_ELEMENT_ARRAY_BUFFER,
+            bytemuck::cast_slice(indices.as_slice()), 
+            GL_STATIC_DRAW
+        );
+
+        let stride = (8*SIZE_OF_F32).try_into().unwrap();
+        
+        //Position
         gl.VertexAttribPointer(
             0,
             3,
@@ -85,29 +87,36 @@ pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : 
             stride,
             0 as *const _,
         );
+
         gl.EnableVertexAttribArray(0);
 
-        ////normal
-        //gl.VertexAttribPointer(
-        //    1,
-        //    3,
-        //    GL_FLOAT,
-        //    0,
-        //    stride,
-        //    (3*size_of_f32) as *const _
-        //);
-        //gl.EnableVertexAttribArray(1);
 
-        //tex
+        
+
+        //Normals
         gl.VertexAttribPointer(
             1,
+            3,
+            GL_FLOAT,
+            0,
+            stride,
+            (3*SIZE_OF_F32) as *const _
+        );
+        gl.EnableVertexAttribArray(1);
+
+
+        
+        
+        //Texture Coords
+        gl.VertexAttribPointer(
+            2,
             2,
             GL_FLOAT,
             0,
             stride,
-            (3*size_of_f32) as *const _
+            (6*SIZE_OF_F32) as *const _
         );
-        gl.EnableVertexAttribArray(1);
+        gl.EnableVertexAttribArray(2);
 
 
 
@@ -187,24 +196,25 @@ pub fn draw_object(gl:&GlFns, object : Model, vert_shader : &str, frag_shader : 
 
         
 
-        gl.PolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        gl.PolygonMode(GL_FRONT_AND_BACK, GL_LINES);
         let rotation = Matrix4::new_rotation(Vector3::new(0.0_f32,0.0,0.0));
-        let transform = Matrix4::new_translation(&Vector3::new(0.0_f32, 1.0, -5.0));
-        let projection = Matrix4::new_perspective(11.0/8.5, 90_f32.to_radians(),0.1, 100.0);
+        let transform = Matrix4::new_translation(&Vector3::new(0.0_f32, 0.0, 0.0));
+        let look_at = camera.look_at();
+        let projection = camera.projection;
         gl.UniformMatrix4fv(
             gl.GetUniformLocation(shader_program, format!("{}\0", "mvp").as_ptr()), 
             1, 
             GL_FALSE.0.try_into().unwrap(), 
-            (projection*rotation*transform*Matrix4::identity()).as_ptr()
+            (projection*look_at*rotation*transform*Matrix4::identity()).as_ptr()
         );
 
         gl.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        gl.DrawElements(GL_TRIANGLES, (std::mem::size_of_val(&indices)).try_into().unwrap(), GL_UNSIGNED_INT, 0 as *const _);
+        gl.DrawElements(GL_TRIANGLES, (SIZE_OF_F32*indices.len()).try_into().unwrap(), GL_UNSIGNED_INT, 0 as *const _);
         gl.BindVertexArray(0);
 
         gl.BindBuffer(GL_ARRAY_BUFFER, 0);
-        //gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
 
         gl.DeleteShader(vertex_shader);

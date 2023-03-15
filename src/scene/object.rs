@@ -4,6 +4,8 @@ use sdl2::surface::Surface;
 use std::fs::{File};
 use std::io::{BufReader, BufRead};
 
+use super::ViewObject;
+
 pub struct Material{
     pub ambient : Vector4<f32>,
     pub diffuse : Vector4<f32>,
@@ -20,8 +22,7 @@ pub struct Model{
     pub mesh : Mesh,
     pub material : Material,
     pub texture : &'static str,
-    pub velocity : Vector3<f32>,
-    pub rotational_velocity : Vector3<f32>
+    pub view_obj : ViewObject
 }
 
 
@@ -36,7 +37,7 @@ impl Mesh{
         let mut normals: Vec<f32> = Vec::new();
         let mut vertices: Vec<f32> = Vec::new();
         let mut tex_coords: Vec<f32> = Vec::new();
-        let mut index_uses: Vec<(usize,usize)> = Vec::new();
+        let mut index_uses: Vec<(usize,usize,usize)> = Vec::new();
         let obj_key: [&str; 4] = ["v", "f", "vt", "vn"];
 
         for line in reader.lines() {
@@ -54,30 +55,35 @@ impl Mesh{
                     let p2: Vec<&str> = vals[2].split('/').collect();
                     let p3: Vec<&str> = vals[3].split('/').collect();
                     for i in [p1,p2,p3].iter(){
-                        let (point_i, tex_i) = (
+                        let (point_i, tex_i, norm_i) = (
                             i[0].parse::<usize>().unwrap()-1,
                             i[1].parse::<usize>().unwrap()-1,
-                            //i[2].parse::<usize>().unwrap()-1
+                            i[2].parse::<usize>().unwrap()-1
                         );
                         
-                        if index_uses.contains(&(point_i,tex_i)) {
+                        if index_uses.contains(&(point_i,tex_i,norm_i)) {
 
-                            indices.push(index_uses.iter().position(|&x|x==(point_i,tex_i)).unwrap() as u32);
+                            indices.push(index_uses.iter().position(|&x|x==(point_i, tex_i, norm_i)).unwrap() as u32);
                         } else {
-                            indices.push((vertices.len() as u32)/5);
+                            indices.push((vertices.len() as u32)/8);
 
                             vertices.extend(
                                 [
                                     points[point_i*3],
                                     points[point_i*3+1],
                                     points[point_i*3+2],
-                                    tex_coords[tex_i*2],
+
+                                    normals[norm_i*3],
+                                    normals[norm_i*3+1],
+                                    normals[norm_i*3+2],
+
                                     tex_coords[tex_i*2+1],
+                                    tex_coords[tex_i*2],
 
                                 ]
                             );
                             
-                            index_uses.push((point_i, tex_i,));
+                            index_uses.push((point_i, tex_i, norm_i));
                         }
                     }
                 } else if *vals[0] == *obj_key[2] {
