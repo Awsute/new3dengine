@@ -12,15 +12,23 @@ pub struct Client{
     pub server : ServerEngine,
     pub gl : GlFns
 }
-pub fn buffer_data(gl:&GlFns, ty: GLenum, data: &[u8], usage: GLenum) {
-    unsafe {
-      gl.BufferData(
-        ty,
-        data.len().try_into().unwrap(),
-        data.as_ptr().cast(),
-        usage,
-      );
-    }
+pub fn rot_align(vec1 : Vec3, vec2 : Vec3) -> Matrix3<f32> {
+    let axis = vec1.cross(&vec2);
+
+    let cos_a = vec1.dot(&vec2);
+    let k = 1.0 / (1.0 + cos_a);
+
+    return Matrix3::new( (axis.x * axis.x * k) + cos_a,
+                 (axis.y * axis.x * k) - axis.z, 
+                 (axis.z * axis.x * k) + axis.y,
+                 (axis.x * axis.y * k) + axis.z,  
+                 (axis.y * axis.y * k) + cos_a,      
+                 (axis.z * axis.y * k) - axis.x,
+                 (axis.x * axis.z * k) - axis.y,
+                 (axis.y * axis.z * k) + axis.x,  
+                 (axis.z * axis.z * k) + cos_a,
+                 )
+
 }
 
 impl Client {
@@ -37,19 +45,13 @@ impl Client {
         gl.ClearColor(0.0, 0.0, 0.0, 1.0);
     }
     pub fn update_camera(&mut self, step : f32) {
-        let point_at = self.camera.look_at().try_inverse().unwrap();
-        let vo = &mut self.camera.view_obj;
-        let new_rot = Mat4::new_rotation(vo.rotational_velocity*step) * vo.direction.insert_row(3, 0.0);
-        vo.direction = new_rot.remove_row(3);
-        
-        let transformed_velocity = point_at*vo.velocity.insert_row(3,0.0);
-        vo.position = vo.position - transformed_velocity.remove_row(3)*step;
+        self.camera.view_obj.update_cam(step);
     }
 
-    pub unsafe fn draw_scene(&self, frag_shader : &str, vert_shader : &str) {
+    pub unsafe fn draw_scene(&self, frag_shader : &String, vert_shader : &String) {
         let gl = &self.gl;
         for object in &self.server.objects{
-            draw_object(gl, &self.camera, object, vert_shader, frag_shader)
+            draw_object(gl, self, object, vert_shader, frag_shader)
         }
     }
     

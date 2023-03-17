@@ -15,8 +15,7 @@ pub struct Material{
 }
 pub struct Mesh{
     pub vertex_buffer: Vec<f32>,
-    pub index_buffer : Vec<u32>,
-    
+    pub index_buffer : Vec<u32>,  
 }
 pub struct Model{
     pub mesh : Mesh,
@@ -25,10 +24,7 @@ pub struct Model{
     pub view_obj : ViewObject
 }
 
-
 impl Mesh{
-
-
     pub fn load_obj_file(file_path: String) -> Self {
         let file = File::open(file_path).unwrap();
         let reader = BufReader::new(file);

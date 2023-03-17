@@ -1,9 +1,13 @@
 use glm::*;
-
-use super::view_object::ViewObject;
+use gl33::*;
+use crate::rendering::*;
+use super::camera::*;
 
 pub struct Light{
-    pub view_object : ViewObject,
+    pub camera : Camera,
     pub color : Vector4<f32>,
     pub strength : f32
+}
+
+impl Light {
 }

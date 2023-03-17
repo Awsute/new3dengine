@@ -10,6 +10,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::sys::SDL_GL_GetProcAddress;
 use std::time::Duration;
 use glm::*;
+use std::fs;
 //mod mesh_loader;
 
 mod scene;
@@ -25,40 +26,12 @@ use scene::*;
 //use crate::mesh_loader::*;
 
 
-const VERT_SHADER: &str = r#"#version 460
-
-  
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 aNormal;
-    layout (location = 2) in vec2 aTexCoord;
-    layout (location = 3) uniform mat4 mvp;
-
-    out vec3 ourNormal;
-    out vec2 texCoord;
-
-    void main() {
-        gl_Position = mvp*vec4(aPos.x,aPos.y,aPos.z, 1.0);
-        ourNormal = aNormal;
-        texCoord = aTexCoord;
-
-    }
-"#;
-
-const FRAG_SHADER: &str = r#"#version 460
-    in vec3 ourNormal;
-    in vec2 texCoord;
 
 
-    out vec4 FragColor;
-
-    uniform sampler2D ourTexture;
-    void main() {
-        FragColor = texture(ourTexture, texCoord);
-    }
-"#;
 
 
 pub fn main() {
+    
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let screen_size = video_subsystem.display_bounds(0).unwrap();
@@ -79,23 +52,39 @@ pub fn main() {
     };
     let current_camera = Camera{
         view_obj : ViewObject::empty(),
-        projection : Mat4::new_perspective(window.size().0 as f32/window.size().1 as f32, 90_f32.to_radians(), 0.1, 100.0),
+        projection : Mat4::new_perspective(window.size().0 as f32/window.size().1 as f32, 60_f32.to_radians(), 0.1, 100.0),
     };
     let mut current_client = Client{
         camera : current_camera,
         server : server,
         gl : gl
     };
+
+    let frag_shader = fs::read_to_string("assets/shaders/fragment_shaders/frag_shader.glsl").unwrap();
+    let vert_shader = fs::read_to_string("assets/shaders/vertex_shaders/vert_shader.glsl").unwrap();
+
     unsafe{
         current_client.init_gl();
     }
-    let object = Model { 
+    let object = Model {
         mesh: Mesh::load_obj_file("assets/objects/normalized_teapot.obj".to_string()), 
         material: Material { ambient: Vec4::new(0.0,0.0,0.0,1.0), diffuse: Vec4::new(0.0,0.0,0.0,1.0), specular: Vec4::new(0.0,0.0,0.0,1.0), shininess: 0.0 }, 
         texture: "assets/textures/travisScot.png",
         view_obj : ViewObject::empty()
     };
+    let light = Light{
+        camera : Camera::new(
+            Vec3::new(10.0,0.0,0.0), 
+            Vec3::new(-1.0,0.0,0.0), 
+            Mat4::new_orthographic(-10.0, 10.0, -10.0, 10.0, 0.1, 100.0)
+        ),
+        color : Vec4::new(1.0,0.0,0.0,1.0),
+        strength : 1.0
+    };
     current_client.server.objects.push(object);
+    current_client.server.lights.push(light);
+    current_client.server.objects[0].view_obj.velocity = Vec3::new(0.0,0.0,0.0);
+    current_client.server.objects[0].view_obj.rotational_velocity = Vec3::new(0.0,0.0,0.0);
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         
@@ -150,7 +139,7 @@ pub fn main() {
                 
                 
                 Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
-                    current_client.camera.view_obj.rotational_velocity.y = -1.0
+                    current_client.camera.view_obj.rotational_velocity.y = 1.0
                 },
 
                 Event::KeyUp { keycode: Some(Keycode::Right), .. } => {
@@ -158,7 +147,7 @@ pub fn main() {
                 },
 
                 Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
-                    current_client.camera.view_obj.rotational_velocity.y = 1.0
+                    current_client.camera.view_obj.rotational_velocity.y = -1.0
                 },
                 Event::KeyUp { keycode: Some(Keycode::Left), .. } => {
                     current_client.camera.view_obj.rotational_velocity.y = 0.0
@@ -167,14 +156,14 @@ pub fn main() {
 
 
                 Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                    current_client.camera.view_obj.rotational_velocity.x = -1.0
+                    current_client.camera.view_obj.rotational_velocity.x = 1.0
                 },
                 Event::KeyUp { keycode: Some(Keycode::Up), .. } => {
                     current_client.camera.view_obj.rotational_velocity.x = 0.0
                 },
 
                 Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                    current_client.camera.view_obj.rotational_velocity.x = 1.0
+                    current_client.camera.view_obj.rotational_velocity.x = -1.0
                 },
                 Event::KeyUp { keycode: Some(Keycode::Down), .. } => {
                     current_client.camera.view_obj.rotational_velocity.x = 0.0
@@ -182,9 +171,10 @@ pub fn main() {
                 _ => {}
             }
         }
+        current_client.server.update_scene(1.0/60.0);
         current_client.update_camera(1.0/60.0);
         unsafe{
-            current_client.draw_scene(FRAG_SHADER, VERT_SHADER);
+            current_client.draw_scene(&frag_shader, &vert_shader);
         }
         // The rest of the game loop goes here...
         

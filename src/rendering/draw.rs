@@ -1,7 +1,8 @@
 extern crate gl33;
 extern  crate bytemuck;
+use super::uniform::*;
 use std::{ops::Deref, str::from_utf8};
-use crate::Camera;
+use crate::{scene::*, engine::client::Client};
 use sdl2::image::*;
 use gl33::{*, gl_core_types::*, gl_enumerations::*, gl_groups::*, global_loader::*};
 use glm::{*};
@@ -20,8 +21,10 @@ pub fn buffer_data(gl:&GlFns, ty: GLenum, data: &[u8], usage: GLenum) {
 }
 const SIZE_OF_F32 : usize = std::mem::size_of::<f32>();
 
-pub fn draw_object(gl:&GlFns, camera : &Camera, object : &Model, vert_shader : &str, frag_shader : &str){
+pub fn draw_object(gl:&GlFns, client : &Client, object : &Model, vert_shader : &String, frag_shader : &String){
     unsafe {
+        let camera = &client.camera;
+        let server = &client.server;
         let indices = &object.mesh.index_buffer;
         let vertices = &object.mesh.vertex_buffer;
         let texture_data = sdl2::surface::Surface::from_file(object.texture).unwrap();
@@ -197,16 +200,23 @@ pub fn draw_object(gl:&GlFns, camera : &Camera, object : &Model, vert_shader : &
         
 
         gl.PolygonMode(GL_FRONT_AND_BACK, GL_LINES);
-        let rotation = Matrix4::new_rotation(Vector3::new(0.0_f32,0.0,0.0));
-        let transform = Matrix4::new_translation(&Vector3::new(0.0_f32, 0.0, 0.0));
-        let look_at = camera.look_at();
+        let mvp_obj = object.view_obj.look_at_up(object.view_obj.up).try_inverse().unwrap();
+        let look_at = camera.view_obj.look_at();
         let projection = camera.projection;
-        gl.UniformMatrix4fv(
-            gl.GetUniformLocation(shader_program, format!("{}\0", "mvp").as_ptr()), 
-            1, 
-            GL_FALSE.0.try_into().unwrap(), 
-            (projection*look_at*rotation*transform*Matrix4::identity()).as_ptr()
-        );
+        set_uniform(gl, shader_program, "mvp", mvp_obj.as_ptr());
+        set_uniform(gl, shader_program, "lookAt", look_at.as_ptr());
+        set_uniform(gl, shader_program, "projection", projection.as_ptr());
+        set_uniform(gl, shader_program, "cameraDirection", camera.view_obj.forward.as_ptr());
+        set_uniform(gl, shader_program, "cameraPosition", camera.view_obj.position.as_ptr());
+        for i in 0..server.lights.len() {
+            let light = &server.lights[i];
+            gl.UniformBlockBinding(shader_program, uniformBlockIndex, uniformBlockBinding)
+            set_uniform(gl, shader_program, format!("lights[{}].position",i).as_str(), light.camera.view_obj.position.as_ptr());
+            set_uniform(gl, shader_program, format!("lights[{}].direction",i).as_str(), light.camera.view_obj.forward.as_ptr());
+            set_uniform(gl, shader_program, format!("lights[{}].color",i).as_str(), light.color.as_ptr());
+            set_uniform(gl, shader_program, format!("lights[{}].strength",i).as_str(), [light.strength].as_ptr());
+
+        }
 
         gl.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
