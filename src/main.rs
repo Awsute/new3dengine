@@ -19,6 +19,7 @@ mod types;
 mod engine;
 
 use engine::*;
+
 use types::*;
 use crate::rendering::{draw::*};
 
@@ -43,17 +44,18 @@ pub fn main() {
         .unwrap();
 
     let gl_context = window.gl_create_context().unwrap();
-    
+    let max_fps = 60.0;
     
     let gl = unsafe { GlFns::load_from(&|p| SDL_GL_GetProcAddress(p as *const i8) as _).unwrap() };
     let server = ServerEngine{
         objects : Vec::new(),
         lights : Vec::new()
     };
-    let current_camera = Camera{
-        view_obj : ViewObject::empty(),
-        projection : Mat4::new_perspective(window.size().0 as f32/window.size().1 as f32, 60_f32.to_radians(), 0.1, 100.0),
-    };
+    let current_camera = Camera::new(
+        Vec3::new(10.0,0.0,0.0),
+        Vec3::new(-1.0,0.0,0.0),
+        Mat4::new_perspective(window.size().0 as f32/window.size().1 as f32, 90_f32.to_radians(), 0.1, 100.0)
+    );
     let mut current_client = Client{
         camera : current_camera,
         server : server,
@@ -67,25 +69,28 @@ pub fn main() {
         current_client.init_gl();
     }
     let object = Model {
-        mesh: Mesh::load_obj_file("assets/objects/normalized_teapot.obj".to_string()), 
-        material: Material { ambient: Vec4::new(0.0,0.0,0.0,1.0), diffuse: Vec4::new(0.0,0.0,0.0,1.0), specular: Vec4::new(0.0,0.0,0.0,1.0), shininess: 0.0 }, 
-        texture: "assets/textures/travisScot.png",
+        mesh: Mesh::load_obj_file("assets/objects/bunny.obj".to_string()), 
+        material: Material { ambient: Vec4::new(0.5,0.5,0.5,1.0), diffuse: Vec4::new(0.5,0.5,0.5,1.0), specular: Vec4::new(1.0,1.0,1.0,1.0), shininess: 2.0 }, 
+        texture: "assets/textures/white.png",
         view_obj : ViewObject::empty()
     };
+    
     let light = Light{
         camera : Camera::new(
             Vec3::new(10.0,0.0,0.0), 
             Vec3::new(-1.0,0.0,0.0), 
             Mat4::new_orthographic(-10.0, 10.0, -10.0, 10.0, 0.1, 100.0)
         ),
-        color : Vec4::new(1.0,0.0,0.0,1.0),
-        strength : 1.0
+        color : Vec4::new(1.0,1.0,1.0,1.0),
+        strength : 1.0,
+        shadow_resolution : (256,526)
     };
     current_client.server.objects.push(object);
     current_client.server.lights.push(light);
     current_client.server.objects[0].view_obj.velocity = Vec3::new(0.0,0.0,0.0);
-    current_client.server.objects[0].view_obj.rotational_velocity = Vec3::new(0.0,0.0,0.0);
+    current_client.server.objects[0].view_obj.rotational_velocity = Vec3::new(0.0,0.0,1.0);
     let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut timer = fps::start_timer();
     'running: loop {
         
         for event in event_pump.poll_iter() {
@@ -171,14 +176,23 @@ pub fn main() {
                 _ => {}
             }
         }
-        current_client.server.update_scene(1.0/60.0);
-        current_client.update_camera(1.0/60.0);
+
+        let mut frame_time = fps::end_timer(timer);
+        if max_fps < 1.0/frame_time{
+            frame_time = 1.0/max_fps;
+        }
+        else {
+            println!("{}", frame_time);
+        }
+        current_client.server.update_scene(frame_time);
+        current_client.update_camera(frame_time);
         unsafe{
             current_client.draw_scene(&frag_shader, &vert_shader);
         }
         // The rest of the game loop goes here...
-        
         window.gl_swap_window();
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / max_fps as u32));
+        
+        timer = fps::start_timer();
     }
 }

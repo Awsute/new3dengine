@@ -49,10 +49,8 @@ impl Client {
     }
 
     pub unsafe fn draw_scene(&self, frag_shader : &String, vert_shader : &String) {
-        let gl = &self.gl;
         for object in &self.server.objects{
-            draw_object(gl, self, object, vert_shader, frag_shader)
+            draw_object(self, object, vert_shader, frag_shader)
         }
     }
-    
 }

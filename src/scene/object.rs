@@ -1,5 +1,6 @@
 extern crate gl33;
 use glm::{*};
+use crate::types::*;
 use sdl2::surface::Surface;
 use std::fs::{File};
 use std::io::{BufReader, BufRead};
@@ -106,6 +107,67 @@ impl Mesh{
         }
     }
 
+    pub fn triangle_buffer(&self) -> Vec<[[f32;8];3]> {
+        let mut triangle_buffer : Vec<[[f32;8];3]> = Vec::new();
+        let x = | index : usize | -> [f32;8] {
+            let i = index*8; 
+            return [
+                self.vertex_buffer[i],
+                self.vertex_buffer[i+1],
+                self.vertex_buffer[i+2],
+
+                self.vertex_buffer[i+3],
+                self.vertex_buffer[i+4],
+                self.vertex_buffer[i+5],
+
+                self.vertex_buffer[i+6],
+                self.vertex_buffer[i+7],
+
+                ]
+        };
+        for i in 0..self.index_buffer.len()/3{
+            triangle_buffer.push([x(i), x(i+1), x(i+2)]);
+        }
+        return triangle_buffer;
+    }
+
+    pub fn approximate_normals(&mut self) {
+        for i in 0..self.index_buffer.len()/3 {
+            let tri1 = [self.index_buffer[i*3] as usize, self.index_buffer[i*3+1] as usize, self.index_buffer[i*3+2] as usize];
+            
+            for p1 in tri1{
+                let pt = [self.vertex_buffer[p1], self.vertex_buffer[p1+1], self.vertex_buffer[p1+2]];
+                let mut normal = Vec3::new(0.0,0.0,0.0);
+                for o in 0..self.index_buffer.len()/3 {
+                    let tri2 = [self.index_buffer[o*3] as usize, self.index_buffer[o*3+1] as usize, self.index_buffer[o*3+2] as usize];
+                    if 
+                        (pt[0] == self.vertex_buffer[tri2[0]] && pt[1] == self.vertex_buffer[tri2[0]+1] && pt[1] == self.vertex_buffer[tri2[0]+2]) ^ 
+                        (pt[0] == self.vertex_buffer[tri2[1]] && pt[1] == self.vertex_buffer[tri2[1]+1] && pt[1] == self.vertex_buffer[tri2[1]+2]) ^
+                        (pt[0] == self.vertex_buffer[tri2[2]] && pt[1] == self.vertex_buffer[tri2[2]+1] && pt[1] == self.vertex_buffer[tri2[2]+2])
+                    {
+                        
+                        normal += Vec3::new(
+                            self.vertex_buffer[tri2[0]+3],
+                            self.vertex_buffer[tri2[0]+4], 
+                            self.vertex_buffer[tri2[0]+5]
+                        ).cross(
+                            &Vec3::new(
+                                self.vertex_buffer[tri2[1]+3],
+                                self.vertex_buffer[tri2[1]+4],
+                                self.vertex_buffer[tri2[1]+5]
+
+                            )
+                        );
+                    }
+                }
+                
+                normal = normal.normalize();
+                self.vertex_buffer[p1+3] = normal.x;
+                self.vertex_buffer[p1+4] = normal.y;
+                self.vertex_buffer[p1+5] = normal.z;
+            }
+        }
+    }
 }
 
 
