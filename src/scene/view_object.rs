@@ -45,11 +45,11 @@ impl ViewObject {
     pub fn update_object(&mut self, step : f32) {
 
         let point_at = self.look_at_up(self.up).try_inverse().unwrap();
-        let adjusted_rot = Mat4::new_rotation((point_at*self.rotational_velocity.insert_row(3, 0.0)).remove_row(3)*step);
+        let adjusted_rot = Mat4::new_rotation((point_at*self.rotational_velocity.insert_row(3, 0.0)).xyz()*step);
         let fwd_rot = adjusted_rot * self.forward.insert_row(3, 0.0);
         let up_rot = adjusted_rot * self.up.insert_row(3, 0.0);
-        self.forward = fwd_rot.remove_row(3);
-        self.up = up_rot.remove_row(3);
+        self.forward = fwd_rot.xyz();
+        self.up = up_rot.xyz();
         
         self.position = self.position + self.velocity*step;
     }

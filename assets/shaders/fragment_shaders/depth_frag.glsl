@@ -1,6 +1,5 @@
 #version 460
-
 void main()
 {             
-    // gl_FragDepth = gl_FragCoord.z;
+    //gl_FragDepth = 1.0/lightSpace.z;
 }  

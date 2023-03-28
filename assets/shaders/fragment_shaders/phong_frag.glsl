@@ -4,6 +4,8 @@ struct Light
     vec3 position;
     vec3 direction;
     vec4 color;
+    mat4 lookAt;
+    mat4 projection;
     float strength;
 };
 
@@ -17,21 +19,24 @@ struct Material
 
 smooth in vec4 ourNormal;
 smooth in vec4 vertToCam;
-in vec2 texCoord;
+smooth in vec2 texCoord;
 in vec4 fragPos;
 
-in vec3 aPos;
 uniform mat4 lookAt;
+uniform mat4 projection;
 uniform mat4 mvp;
 
-uniform Light[64] lights;
+uniform Light[32] lights;
 uniform Material mtl;
 
 
 out vec4 FragColor;
 
+uniform sampler2D depthMaps;
 uniform sampler2D ourTexture;
 
+uniform vec3 cameraDirection;
+uniform vec3 cameraPosition;
 
 void main() 
 {
@@ -44,17 +49,25 @@ void main()
         if (lights[i].strength > 0.0) {
             lightCount++;
             Light light = lights[i];
+            vec4 lightViewPos = light.projection * light.lookAt * fragPos;
+            vec3 projCoords = (lightViewPos.xyz / lightViewPos.w) * 0.5 + 0.5;
+            
+            float closestDepth = texture(depthMaps, projCoords.xy).r;
+            
+            float currentDepth = projCoords.z - 0.00025;
+            
+            float shadow = currentDepth <= closestDepth ? 1.0 : 0.0;
 
             vec4 lightToFrag = normalize(vec4(light.position,0.0) - fragPos);
             vec4 reflectedDir = reflect(-lightToFrag, ourNormal);
 
 
-            float dp = max(dot(ourNormal, lightToFrag),0.0);
-            float r = max(dot(reflectedDir, vertToCam),0.0);
+            float dp = max(dot(ourNormal, lightToFrag), 0.0);
+            float r = max(dot(reflectedDir, vertToCam), 0.0);
 
             r = pow(r,mtl.shininess);
 
-            lightColors += light.strength*light.color*((mtl.specular*r)+(dp*mtl.diffuse));
+            lightColors += shadow*light.strength*light.color*((mtl.specular*r)+(dp*mtl.diffuse));
         }
     }
     

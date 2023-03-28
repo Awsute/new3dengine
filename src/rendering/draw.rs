@@ -147,11 +147,13 @@ pub unsafe fn generate_vertex_array(gl : &GlFns) {
     gl.GenVertexArrays(1, &mut vao);
     gl.BindVertexArray(vao);
 }
+pub unsafe fn unbind_vertex_array(gl : &GlFns) {
+    gl.BindVertexArray(0);
 
-pub unsafe fn generate_buffers(gl : &GlFns, vertices : &Vec<f32>, indices : &Vec<u32>){
+}
+pub unsafe fn bind_vertex_buffer(gl : &GlFns, vertices : &Vec<f32>) {
     
     let mut vbo = 0;
-    let mut ebo = 0;
     gl.GenBuffers(1, &mut vbo);
     gl.BindBuffer(GL_ARRAY_BUFFER, vbo);
 
@@ -161,6 +163,11 @@ pub unsafe fn generate_buffers(gl : &GlFns, vertices : &Vec<f32>, indices : &Vec
         bytemuck::cast_slice(vertices.as_slice()), 
         GL_STATIC_DRAW
     );
+
+
+}
+pub unsafe fn bind_element_buffer(gl : &GlFns, indices : &Vec<u32>) {
+    let mut ebo = 0;
 
     gl.GenBuffers(1, &mut ebo);
     gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -172,83 +179,41 @@ pub unsafe fn generate_buffers(gl : &GlFns, vertices : &Vec<f32>, indices : &Vec
         GL_STATIC_DRAW
     );
 }
-
-pub unsafe fn generate_texture_data(gl : &GlFns, texture_data : Surface){
-    let mut tex = 0;
-        
-    gl.GenTextures(1, &mut tex);
-    gl.BindTexture(GL_TEXTURE_2D, tex);
-    gl.TexImage2D(
-        GL_TEXTURE_2D, 
-        0, 
-        GL_RGB.0.try_into().unwrap(), 
-        texture_data.width() as i32, 
-        texture_data.height() as i32, 
-        0, 
-        GL_RGB, 
-        GL_UNSIGNED_BYTE, 
-        texture_data.without_lock().unwrap().as_ptr() as *const _
-    );
-    gl.GenerateMipmap(GL_TEXTURE_2D);
+pub unsafe fn unbind_vertex_buffer(gl : &GlFns) {
+    gl.BindBuffer(GL_ARRAY_BUFFER, 0);
 }
-pub fn draw_object(client : &Client, object : &Model, vert_shader : &String, frag_shader : &String){
+
+pub unsafe fn unbind_element_buffer(gl : &GlFns) {
+    gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+}
+pub unsafe fn bind_texture_data(gl : &GlFns, texture_data : u32, shader_program : u32) {
+    gl.GenerateMipmap(GL_TEXTURE_2D);
+    gl.Uniform1ui(gl.GetUniformLocation(shader_program, format!("{}\0","ourTexture").as_ptr()), texture_data);
+
+}
+
+pub fn draw_object(client : &Client, object : &Model, shader_program : u32, load_uniforms_fn : &dyn Fn(&GlFns, u32, &Client, &Model)) {
     unsafe {
         let gl = &client.gl;
-        gl.PolygonMode(GL_FRONT_AND_BACK, GL_TRIANGLES);
         
-        let camera = &client.camera;
-        let server = &client.server;
         let indices = &object.mesh.index_buffer;
         let vertices = &object.mesh.vertex_buffer;
-        let texture_data = sdl2::surface::Surface::from_file(object.texture).unwrap();
 
-        let shader_program = shader_program(gl, vert_shader, frag_shader);
+        load_uniforms_fn(gl, shader_program, client, object);
 
-        let mvp_obj = object.view_obj.look_at_up(object.view_obj.up).try_inverse().unwrap();
-        let look_at = camera.view_obj.look_at();
-        let projection = camera.projection;
-        
-        
-        
-        uniform_matrix4(gl, shader_program, "mvp", mvp_obj.as_ptr());
-        uniform_matrix4(gl, shader_program, "lookAt", look_at.as_ptr());
-        uniform_matrix4(gl, shader_program, "projection", projection.as_ptr());
-        
-        
-        uniform_vec3(gl, shader_program, "cameraDirection", camera.view_obj.forward.as_ptr());
-        uniform_vec3(gl, shader_program, "cameraPosition", camera.view_obj.position.as_ptr());
-        
-        
-        uniform_vec4(gl, shader_program, "mtl.ambient", object.material.ambient.as_ptr());
-        uniform_vec4(gl, shader_program, "mtl.diffuse", object.material.diffuse.as_ptr());
-        uniform_vec4(gl, shader_program, "mtl.specular", object.material.specular.as_ptr());
-        uniform_f32(gl, shader_program, "mtl.shininess", object.material.shininess);
-        
-        for i in 0..server.lights.len() {
-            let light = &server.lights[i];
-            uniform_vec3(gl, shader_program, format!("lights[{}].position",i).as_str(), light.camera.view_obj.position.as_ptr());
-            uniform_vec3(gl, shader_program, format!("lights[{}].direction",i).as_str(), light.camera.view_obj.forward.as_ptr());
-            uniform_vec4(gl, shader_program, format!("lights[{}].color",i).as_str(), light.color.as_ptr());
-            uniform_f32(gl, shader_program, format!("lights[{}].strength",i).as_str(), light.strength);
-
-        }
         generate_vertex_array(gl);
-        generate_buffers(gl, vertices, indices);
-        
-        generate_texture_data(gl, texture_data);
-        
+        bind_vertex_buffer(gl, vertices);
+        bind_element_buffer(gl, indices);
+                
         load_vertex_attributes(gl);
-
-
-        gl.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         gl.DrawElements(GL_TRIANGLES, (SIZE_OF_F32*indices.len()).try_into().unwrap(), GL_UNSIGNED_INT, 0 as *const _);
         
-        gl.BindVertexArray(0);
-
-        gl.BindBuffer(GL_ARRAY_BUFFER, 0);
-        gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        
+        unbind_element_buffer(gl);
+        unbind_vertex_buffer(gl);
+        unbind_vertex_array(gl);
+        gl.BindTexture(GL_TEXTURE_2D, 0);
         delete_shader_program(gl, shader_program);
 
     }

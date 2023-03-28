@@ -1,10 +1,13 @@
 extern crate gl33;
+use gl33::*;
 use glm::{*};
 use crate::types::*;
 use sdl2::surface::Surface;
+use std::error::Error;
+use std::ffi::c_void;
 use std::fs::{File};
 use std::io::{BufReader, BufRead};
-
+use sdl2::image::*;
 use super::ViewObject;
 
 pub struct Material{
@@ -14,6 +17,10 @@ pub struct Material{
     pub shininess : f32,
     
 }
+pub struct Texture {
+    pub id : u32,
+    pub data : Surface<'static>,
+}
 pub struct Mesh{
     pub vertex_buffer: Vec<f32>,
     pub index_buffer : Vec<u32>,  
@@ -21,10 +28,23 @@ pub struct Mesh{
 pub struct Model{
     pub mesh : Mesh,
     pub material : Material,
-    pub texture : &'static str,
+    pub texture : Texture,
     pub view_obj : ViewObject
 }
-
+impl Texture {
+    pub fn new(id : u32, data : Surface<'static>) -> Self {
+        return Self {
+            id,
+            data,
+        };
+    }
+    pub fn gen_new_texture(filepath : &str) -> Self{
+        return Texture::new(0, sdl2::surface::Surface::from_file(filepath).unwrap())
+    }
+    pub unsafe fn gen_id(&mut self, gl : &GlFns) {
+        gl.GenTextures(1, &mut self.id);
+    }
+}
 impl Mesh{
     pub fn load_obj_file(file_path: String) -> Self {
         let file = File::open(file_path).unwrap();
@@ -168,9 +188,9 @@ impl Mesh{
             }
         }
     }
+
 }
 
 
 impl Model{
-
 }
