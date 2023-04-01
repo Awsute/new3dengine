@@ -31,6 +31,17 @@ pub struct Model{
     pub texture : Texture,
     pub view_obj : ViewObject
 }
+
+impl Material {
+    pub fn new(ambient : Vec4, diffuse : Vec4, specular : Vec4, shininess : f32) -> Self {
+        return Self {
+            ambient,
+            diffuse,
+            specular,
+            shininess
+        }
+    }
+}
 impl Texture {
     pub fn new(id : u32, data : Surface<'static>) -> Self {
         return Self {
@@ -42,7 +53,10 @@ impl Texture {
         return Texture::new(0, sdl2::surface::Surface::from_file(filepath).unwrap())
     }
     pub unsafe fn gen_id(&mut self, gl : &GlFns) {
-        gl.GenTextures(1, &mut self.id);
+        let mut tex = 0;
+        gl.GenTextures(1, &mut tex);
+        self.id = tex;
+        println!("{}", tex);
     }
 }
 impl Mesh{

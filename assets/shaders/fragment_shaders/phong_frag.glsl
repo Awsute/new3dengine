@@ -52,12 +52,14 @@ void main()
             vec4 lightViewPos = light.projection * light.lookAt * fragPos;
             vec3 projCoords = (lightViewPos.xyz / lightViewPos.w) * 0.5 + 0.5;
             
-            float closestDepth = texture(depthMaps, projCoords.xy).r;
+            float closestDepth = texture(depthMaps, projCoords.xy).z;
             
-            float currentDepth = projCoords.z - 0.00025;
-            
-            float shadow = currentDepth <= closestDepth ? 1.0 : 0.0;
-
+            float currentDepth = projCoords.z;
+            float bias = 0.00005 * (tan(acos(dot(ourNormal, -vec4(light.direction,1.0)))));
+            float shadow = currentDepth - bias <= closestDepth ? 1.0 : 0.0;
+            if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0) {
+                shadow = 0.0;
+            }
             vec4 lightToFrag = normalize(vec4(light.position,0.0) - fragPos);
             vec4 reflectedDir = reflect(-lightToFrag, ourNormal);
 

@@ -24,6 +24,9 @@ impl ViewObject {
             rotational_velocity: Vec3::new(0.0,0.0,0.0)
         }
     }
+    pub fn from_position(position : Vec3) -> Self {
+        Self::new(position, Vec3::new(0.0,0.0,1.0), Vec3::new(0.0,1.0,0.0), Vec3::new(0.0,0.0,0.0), Vec3::new(0.0,0.0,0.0))
+    }
     pub fn look_at(&self) -> Mat4 {
         return Mat4::look_at_rh(&glm::OPoint::from(self.position), &glm::OPoint::from(self.position+self.forward), &Vec3::new(0.0,1.0,0.0))
     }

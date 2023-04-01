@@ -33,7 +33,7 @@ pub fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let screen_size = video_subsystem.display_bounds(0).unwrap();
-    let window = video_subsystem.window("rust-sdl2 demo",screen_size.width(),screen_size.height())
+    let window = video_subsystem.window("rust-sdl2 demo",screen_size.width(),screen_size.height()-50)
         .opengl()
         .fullscreen()
         .position_centered()
@@ -68,35 +68,50 @@ pub fn main() {
         current_client.init_gl();
     }
     let mut object = Model {
-        mesh: Mesh::load_obj_file("assets/objects/bunny.obj".to_string()), 
-        material: Material { ambient: Vec4::new(0.0,0.0,0.0,1.0), diffuse: Vec4::new(0.5,0.5,0.5,1.0), specular: Vec4::new(1.0,1.0,1.0,1.0), shininess: 2.0 }, 
+        mesh: Mesh::load_obj_file("assets/objects/normalized_teapot.obj".to_string()), 
+        material: Material::new(
+            Vec4::new(0.1,0.1,0.1,1.0), 
+            Vec4::new(0.9,0.9,0.9,1.0),
+            Vec4::new(1.0,1.0,1.0,1.0),
+            16.0 
+        ),
         texture: Texture::gen_new_texture("assets/textures/travisScot.png"),
         view_obj : ViewObject::empty()
     };
 
 
     let mut object0 = Model {
-        mesh: Mesh::load_obj_file("assets/objects/normalized_cube.obj".to_string()), 
-        material: Material { ambient: Vec4::new(0.0,0.0,0.0,1.0), diffuse: Vec4::new(0.5,0.5,0.5,1.0), specular: Vec4::new(1.0,1.0,1.0,1.0), shininess: 2.0 }, 
+        mesh: Mesh::load_obj_file("assets/objects/bunny.obj".to_string()), 
+        material: Material::new(
+            Vec4::new(0.1,0.1,0.1,1.0), 
+            Vec4::new(0.0,0.5,0.5,1.0),
+            Vec4::new(1.0,0.0,0.0,1.0),
+            16.0 
+        ),
         texture: Texture::gen_new_texture("assets/textures/white.png"),
         view_obj : ViewObject::empty()
     };
 
     let mut object1 = Model {
         mesh: Mesh::load_obj_file("assets/objects/normalized_cube.obj".to_string()), 
-        material: Material { ambient: Vec4::new(0.0,0.0,0.0,1.0), diffuse: Vec4::new(0.5,0.5,0.5,1.0), specular: Vec4::new(1.0,1.0,1.0,1.0), shininess: 2.0 }, 
+        material: Material::new(
+            Vec4::new(0.1,0.1,0.1,1.0), 
+            Vec4::new(0.9,0.9,0.9,1.0),
+            Vec4::new(1.0,1.0,1.0,1.0),
+            64.0 
+        ),
         texture: Texture::gen_new_texture("assets/textures/white.png"),
-        view_obj : ViewObject::empty()
+        view_obj : ViewObject::from_position(Vec3::new(5.0,1.0,1.0))
     };
 
 
 
     let light = Light{
         camera : Camera::new(
-            Vec3::new(10.0,10.0,0.0), 
+            Vec3::new(30.0,30.0,0.0), 
             Vec3::new(-1.0,-1.0,0.0).normalize(), 
-            //Mat4::new_orthographic(-50.0, 50.0, -50.0, 50.0, 0.1, 1000.0)
-            Mat4::new_perspective(1.0, 90_f32.to_radians(), 0.1, 50.0)
+            //Mat4::new_orthographic(-50.0, 50.0, -50.0, 50.0, 0.01, 100.0)
+            Mat4::new_perspective(1.0, 90_f32.to_radians(), 0.1, 100.0)
             ,
         ),
         color : Vec4::new(1.0,1.0,1.0,1.0),

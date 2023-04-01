@@ -54,6 +54,7 @@ impl Client {
         draw::draw_object(self, object, shader_program, load_uniforms_fn)
     }
     pub unsafe fn draw_scene(&self, shader_program : u32) {
+        self.gl.CullFace(GL_BACK);
         for object in &self.server.objects{
             let uniform_fn = |gl : &GlFns, shader_program : u32, client : &Client, model : &Model| {
                 gl.DepthFunc(GL_LEQUAL);
@@ -63,9 +64,7 @@ impl Client {
                 let projection = camera.projection;
 
                 gl.ActiveTexture(GL_TEXTURE0);
-                let mut tex = 0;
-                gl.GenTextures(1, &mut tex);
-                gl.BindTexture(GL_TEXTURE_2D, tex);
+                gl.BindTexture(GL_TEXTURE_2D, 0);
                 
                 gl.TexImage2D(
                     GL_TEXTURE_2D, 
@@ -84,7 +83,7 @@ impl Client {
                 gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR.0.try_into().unwrap());
                 gl.GenerateMipmap(GL_TEXTURE_2D);
 
-                gl.Uniform1ui(gl.GetUniformLocation(shader_program, format!("{}\0","ourTexture").as_ptr()), tex);
+                gl.Uniform1ui(gl.GetUniformLocation(shader_program, format!("{}\0","ourTexture").as_ptr()), 0);
                 
                 uniform_matrix4(gl, shader_program, "mvp", mvp_obj.as_ptr());
                 uniform_matrix4(gl, shader_program, "lookAt", look_at.as_ptr());
@@ -118,7 +117,7 @@ impl Client {
                     gl.GenerateMipmap(GL_TEXTURE_2D);
                     gl.Uniform1i(gl.GetUniformLocation(shader_program, format!("{}\0","depthMaps").as_ptr()), light.depth_map.try_into().unwrap());
                 }
-                gl.PolygonMode(GL_FRONT_AND_BACK, GL_TRIANGLES);
+                //gl.PolygonMode(GL_FRONT_AND_BACK, GL_TRIANGLES);
                 
             };
             draw_object(self, object, shader_program, &uniform_fn);
@@ -128,7 +127,8 @@ impl Client {
         
         let gl = &self.gl;
         gl.DepthFunc(GL_LESS);
-        gl.PolygonMode(GL_BACK, GL_TRIANGLES);
+        gl.CullFace(GL_FRONT);
+        //gl.PolygonMode(GL_BACK, GL_TRIANGLES);
 
         for i in 0..self.server.lights.len() {
             self.server.lights[i].camera.view_obj.update_object(step);

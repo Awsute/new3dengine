@@ -7,5 +7,5 @@ uniform mat4 mvp;
 
 void main()
 {
-    gl_Position = lightProjection * lightLookAt * mvp * vec4(aPos, 1.0);
+    gl_Position = lightProjection * lightLookAt * (mvp * vec4(aPos, 1.0));
 } 
