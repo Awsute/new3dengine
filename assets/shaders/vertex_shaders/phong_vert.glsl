@@ -1,4 +1,5 @@
 #version 460
+#define MAX_LIGHTS 64
 struct Light
 {
     vec3 position;
@@ -26,12 +27,11 @@ uniform mat4 lookAt;
 uniform vec3 cameraDirection;
 uniform vec3 cameraPosition;
 
-uniform sampler2D depthMaps;
 
 uniform sampler2D ourTexture;
 
-uniform Light[32] lights;
-
+uniform Light[MAX_LIGHTS] lights;
+uniform sampler2DArray depthMaps;
 
 smooth out vec4 ourNormal;
 smooth out vec4 vertToCam;
@@ -41,7 +41,7 @@ void main()
 {
     fragPos = mvp*vec4(aPos, 1.0);
     gl_Position = projection*lookAt*fragPos;
-    ourNormal = mvp*vec4(aNormal,0.0);
+    ourNormal = mat4(transpose(inverse(mat3(mvp))))*vec4(aNormal,0.0);
     texCoord = aTexCoord;
     vertToCam = vec4(cameraPosition,1.0)-fragPos;
 

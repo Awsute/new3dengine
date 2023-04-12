@@ -108,13 +108,13 @@ impl Client {
                     uniform_matrix4(gl, shader_program, format!("lights[{}].projection",i).as_str(), light.camera.projection.as_ptr()); 
                     uniform_f32(gl, shader_program, format!("lights[{}].strength",i).as_str(), light.strength);
                     
-                    gl.ActiveTexture(gl33::GLenum(TryInto::<u32>::try_into(GL_TEXTURE1.0).unwrap() + i as u32));
-                    gl.BindTexture(GL_TEXTURE_2D, light.depth_map);
-                    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST.0.try_into().unwrap());
-                    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST.0.try_into().unwrap());
-                    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE.0.try_into().unwrap());
-                    gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE.0.try_into().unwrap());
-                    gl.GenerateMipmap(GL_TEXTURE_2D);
+                    gl.ActiveTexture(gl33::GLenum(TryInto::<u32>::try_into(GL_TEXTURE1.0).unwrap()));
+                    gl.BindTexture(GL_TEXTURE_2D_ARRAY, light.depth_map);
+                    gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST.0.try_into().unwrap());
+                    gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST.0.try_into().unwrap());
+                    gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE.0.try_into().unwrap());
+                    gl.TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE.0.try_into().unwrap());
+                    gl.GenerateMipmap(GL_TEXTURE_2D_ARRAY);
                     gl.Uniform1i(gl.GetUniformLocation(shader_program, format!("{}\0","depthMaps").as_ptr()), light.depth_map.try_into().unwrap());
                 }
                 //gl.PolygonMode(GL_FRONT_AND_BACK, GL_TRIANGLES);
@@ -127,7 +127,7 @@ impl Client {
         
         let gl = &self.gl;
         gl.DepthFunc(GL_LESS);
-        gl.CullFace(GL_FRONT);
+        gl.CullFace(GL_BACK);
         //gl.PolygonMode(GL_BACK, GL_TRIANGLES);
 
         for i in 0..self.server.lights.len() {

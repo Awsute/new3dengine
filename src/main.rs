@@ -85,7 +85,7 @@ pub fn main() {
         material: Material::new(
             Vec4::new(0.1,0.1,0.1,1.0), 
             Vec4::new(0.0,0.5,0.5,1.0),
-            Vec4::new(1.0,0.0,0.0,1.0),
+            Vec4::new(1.0,0.9,0.9,1.0),
             16.0 
         ),
         texture: Texture::gen_new_texture("assets/textures/white.png"),
@@ -108,8 +108,33 @@ pub fn main() {
 
     let light = Light{
         camera : Camera::new(
-            Vec3::new(30.0,30.0,0.0), 
-            Vec3::new(-1.0,-1.0,0.0).normalize(), 
+            Vec3::new(30.0,0.0,0.0), 
+            Vec3::new(-1.0,0.0,0.0).normalize(), 
+            //Mat4::new_orthographic(-50.0, 50.0, -50.0, 50.0, 0.01, 100.0)
+            Mat4::new_perspective(1.0, 90_f32.to_radians(), 0.1, 100.0)
+            ,
+        ),
+        color : Vec4::new(0.0,1.0,0.0,1.0),
+        strength : 1.0,
+        depth_map : 0,
+    };
+    let light0 = Light{
+        camera : Camera::new(
+            Vec3::new(10.0,-10.0,0.0), 
+            Vec3::new(-1.0,1.0,0.0).normalize(), 
+            //Mat4::new_orthographic(-50.0, 50.0, -50.0, 50.0, 0.01, 100.0)
+            Mat4::new_perspective(1.0, 90_f32.to_radians(), 0.1, 100.0)
+            ,
+        ),
+        color : Vec4::new(1.0,0.0,1.0,1.0),
+        strength : 0.0,
+        depth_map : 0,
+    };
+
+    let light1 = Light{
+        camera : Camera::new(
+            Vec3::new(-30.0,0.0,0.0), 
+            Vec3::new(1.0,0.0,0.0).normalize(), 
             //Mat4::new_orthographic(-50.0, 50.0, -50.0, 50.0, 0.01, 100.0)
             Mat4::new_perspective(1.0, 90_f32.to_radians(), 0.1, 100.0)
             ,
@@ -123,6 +148,10 @@ pub fn main() {
     current_client.server.objects.push(object1);
 
     current_client.server.lights.push(light);
+    current_client.server.lights.push(light0);
+    current_client.server.lights.push(light1);
+
+
     current_client.server.objects[0].view_obj.velocity = Vec3::new(0.0,0.0,0.0);
     current_client.server.objects[0].view_obj.rotational_velocity = Vec3::new(0.0,1.0,0.0);
     current_client.server.objects[1].view_obj.position = Vec3::new(3.0,3.0,0.0);
